@@ -167,6 +167,14 @@ send_latency_probe (GstElement * parent, GstPad * pad, guint64 ts)
   }
 }
 
+GstEvent * checked_gst_event_ref (GstEvent * event) {
+  if (event) {
+    return gst_event_ref(event);
+  } else {
+    return NULL;
+  }
+}
+
 static void
 calculate_latency (GstInterLatencyTracer * interlatency_tracer,
     GstElement * parent, GstPad * pad, guint64 ts)
@@ -176,10 +184,14 @@ calculate_latency (GstInterLatencyTracer * interlatency_tracer,
   g_return_if_fail (pad);
 
   if (!GST_IS_BIN (parent)) {
-    GstEvent *ev = g_object_get_qdata ((GObject *) pad, latency_probe_id);
+    GstEvent *ev = g_object_dup_qdata ((GObject *) pad,
+      latency_probe_id, (GDuplicateFunc) checked_gst_event_ref, NULL);
 
     if (GST_IS_EVENT (ev))
       log_latency (interlatency_tracer, gst_event_get_structure (ev), pad, ts);
+
+    if (ev)
+      gst_event_unref(ev);
   }
 }
 
